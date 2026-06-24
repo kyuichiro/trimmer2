@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K・DogSpa 予約システム 動作シミュレーター</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel CDN for JSX parsing in browser -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google Fonts (Inter & JetBrains Mono) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    }
+    .font-mono-custom {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    }
+  </style>
+</head>
+<body class="bg-stone-100 min-h-screen text-stone-800">
+
+  <!-- React Root Container -->
+  <div id="root"></div>
+
+  <!-- React Application Logic -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // --- Core Master Data ---
+    const COURSES = [
+      {
+        id: 'self',
+        name: 'セルフシャンプーコース',
+        durationMin: 45,
+        price: 2000,
+        description: 'プロ仕様の設備・シャンプーを自由に使って、飼い主様ご自身で愛犬を気持ちよく洗えるお得なコース。',
+        features: [
+          'プロ用ドッグバス・ドライヤー完備',
+          '各種高品質オーガニックシャンプー使い放題',
+          'エプロン・タオルの無料貸出あり',
+          '同席不要（飼い主様が洗うため、常に一緒です）'
+        ]
+      },
+      {
+        id: 'trimmer',
+        name: 'トリマーお任せコース (要同席)',
+        durationMin: 60,
+        price: 6500,
+        description: 'プロのトリマーが爪切りから足裏カット、シャンプーまで優しく丁寧に施術します。※安心安全のため、飼い主様の常時同席が必要です。',
+        features: [
+          'プロトリマーによる丁寧なヒアリング＆施術',
+          '爪切り・耳掃除・肛門腺絞り・足裏足回りカット込み',
+          '低刺激シャンプー＆保湿トリートメント仕上げ',
+          '【重要】施術中、飼い主様のブース内常時同席（必須）'
+        ]
+      }
+    ];
+
+    const MOCK_TRIMMERS = [
+      {
+        id: 't1',
+        name: '佐藤 さくら',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120&h=120',
+        skills: '小型犬・中型犬得意'
+      },
+      {
+        id: 't2',
+        name: '田中 翔太',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120&h=120',
+        skills: '大型犬得意'
+      },
+      {
+        id: 't3',
+        name: '渡辺 美咲',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120&h=120',
+        skills: 'デザインカット'
+      }
+    ];
+
+    const DOG_BREEDS = [
+      { name: 'トイ・プードル', size: 'small' },
+      { name: 'チワワ', size: 'small' },
+      { name: 'ミニチュア・ダックスフンド', size: 'small' },
+      { name: 'ポメラニアン', size: 'small' },
+      { name: '柴犬', size: 'medium' },
+      { name: 'フレンチ・ブルドッグ', size: 'medium' },
+      { name: 'ゴールデン・レトリバー', size: 'large' },
+      { name: '秋田犬', size: 'large' }
+    ];
+
+    const TIME_SLOTS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'];
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const tomorrowStr = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const INITIAL_SHIFTS = [
+      { id: 's1', trimmerId: 't1', workDate: todayStr, startTime: '10:00', endTime: '11:00', isAssigned: true },
+      { id: 's2', trimmerId: 't1', workDate: todayStr, startTime: '11:00', endTime: '12:00', isAssigned: false },
+      { id: 's3', trimmerId: 't1', workDate: todayStr, startTime: '14:00', endTime: '15:00', isAssigned: false },
+      { id: 's4', trimmerId: 't1', workDate: todayStr, startTime: '15:00', endTime: '16:00', isAssigned: false },
+      { id: 's5', trimmerId: 't2', workDate: todayStr, startTime: '10:00', endTime: '11:00', isAssigned: true },
+      { id: 's6', trimmerId: 't2', workDate: todayStr, startTime: '13:00', endTime: '14:00', isAssigned: true },
+      { id: 's7', trimmerId: 't2', workDate: todayStr, startTime: '14:00', endTime: '15:00', isAssigned: false },
+      { id: 's9', trimmerId: 't3', workDate: todayStr, startTime: '11:00', endTime: '12:00', isAssigned: false },
+      { id: 's11', trimmerId: 't3', workDate: todayStr, startTime: '15:00', endTime: '16:00', isAssigned: true }
+    ];
+
+    const INITIAL_RESERVATIONS = [
+      {
+        id: 'res-101',
+        courseType: 'trimmer',
+        trimmerId: 't1',
+        attendanceAgreedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+        attendanceConfirmedAt: new Date(Date.now() - 3600000 * 1.5).toISOString(),
+        emergencyContact: '090-1234-5678',
+        emergencyEmail: 'yamada@example.com',
+        ownerName: '山田 太郎',
+        dogName: 'チョコ',
+        dogBreed: 'トイ・プードル',
+        dogSize: 'small',
+        date: todayStr,
+        timeSlot: '10:00',
+        status: 'completed',
+        createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+        price: 6500
+      },
+      {
+        id: 'res-102',
+        courseType: 'trimmer',
+        trimmerId: 't2',
+        attendanceAgreedAt: new Date(Date.now() - 3600000 * 1.8).toISOString(),
+        attendanceConfirmedAt: new Date(Date.now() - 3600000 * 1.2).toISOString(),
+        emergencyContact: '080-9876-5432',
+        emergencyEmail: 'suzuki.hanako@example.net',
+        ownerName: '鈴木 花子',
+        dogName: 'レオン',
+        dogBreed: 'ミニチュア・ダックス',
+        dogSize: 'small',
+        date: todayStr,
+        timeSlot: '10:00',
+        status: 'in_progress',
+        createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+        price: 6500
+      }
+    ];
+
+    // --- Main React App ---
+    function App() {
+      const [currentRole, setCurrentRole] = useState('owner'); // 'owner' | 'trimmer' | 'admin'
+      const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
+      const [shifts, setShifts] = useState(INITIAL_SHIFTS);
+      const [logs, setLogs] = useState([
+        { id: 'log-1', timestamp: new Date().toISOString(), type: 'info', message: 'K・DogSpa デモ用スタンドアロンシミュレーターが正常に起動しました。' }
+      ]);
+      const [toast, setToast] = useState(null);
+
+      const addLog = (message, type = 'info', details = '') => {
+        const newLog = { id: 'log-' + Date.now(), timestamp: new Date().toISOString(), type, message, details };
+        setLogs(prev => [newLog, ...prev]);
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 4000);
+      };
+
+      const handleReset = () => {
+        if (confirm('すべてのデータをシミュレーターの初期値に戻しますか？')) {
+          setReservations(INITIAL_RESERVATIONS);
+          setShifts(INITIAL_SHIFTS);
+          setLogs([{ id: 'log-reset', timestamp: new Date().toISOString(), type: 'success', message: 'シミュレーションデータをリセットしました。' }]);
+        }
+      };
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          
+          {/* TOP BAR / SWITCHER */}
+          <header className="bg-stone-900 text-stone-100 border-b border-stone-800 sticky top-0 z-50 shadow-md">
+            <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-amber-100 p-2 rounded-xl text-stone-900 flex items-center justify-center">
+                  <i data-lucide="scissors" class="w-5 h-5 text-amber-700"></i>
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-extrabold text-lg text-white">K・DogSpa</span>
+                    <span className="bg-amber-600/20 text-amber-400 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30">HTML版デモ</span>
+                  </div>
+                  <p className="text-xs text-stone-400">1ファイル完結型 トリマー予約・同席同意シミュレーター</p>
+                </div>
+              </div>
+
+              {/* Roles Toggle */}
+              <div className="flex bg-stone-800 p-1 rounded-xl border border-stone-700 gap-1">
+                <button
+                  onClick={() => setCurrentRole('owner')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    currentRole === 'owner' ? 'bg-amber-600 text-white shadow' : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                  <span>① 飼い主 予約画面</span>
+                </button>
+                <button
+                  onClick={() => setCurrentRole('trimmer')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    currentRole === 'trimmer' ? 'bg-amber-600 text-white shadow' : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  <i data-lucide="scissors" class="w-3.5 h-3.5"></i>
+                  <span>② トリマー 現場端末</span>
+                </button>
+                <button
+                  onClick={() => setCurrentRole('admin')}
+                  className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    currentRole === 'admin' ? 'bg-amber-600 text-white shadow' : 'text-stone-300 hover:text-white'
+                  }`}
+                >
+                  <i data-lucide="layers" class="w-3.5 h-3.5"></i>
+                  <span>③ 管理者 本部画面</span>
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-2 justify-end">
+                <button
+                  onClick={handleReset}
+                  className="px-2.5 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs rounded-lg border border-stone-700 transition flex items-center space-x-1"
+                >
+                  <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                  <span>初期化</span>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* MAIN PANELS */}
+          <main className="flex-grow pb-32">
+            {currentRole === 'owner' && (
+              <OwnerView 
+                shifts={shifts} 
+                reservations={reservations}
+                setReservations={setReservations}
+                setShifts={setShifts}
+                addLog={addLog}
+              />
+            )}
+            
+            {currentRole === 'trimmer' && (
+              <TrimmerView 
+                reservations={reservations}
+                setReservations={setReservations}
+                shifts={shifts}
+                setShifts={setShifts}
+                addLog={addLog}
+              />
+            )}
+
+            {currentRole === 'admin' && (
+              <AdminView 
+                shifts={shifts}
+                setShifts={setShifts}
+                reservations={reservations}
+                logs={logs}
+                setLogs={setLogs}
+              />
+            )}
+          </main>
+
+          {/* REALTIME SYSTEM TICKER */}
+          <footer className="fixed bottom-0 left-0 right-0 bg-stone-900 border-t border-stone-800 text-stone-300 z-40">
+            <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between text-xs font-mono-custom">
+              <div className="flex items-center space-x-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                <span className="font-bold text-amber-500">REALTIME LOG:</span>
+                <span className="text-stone-100 truncate max-w-lg md:max-w-2xl">
+                  {logs[0] ? `${logs[0].message} (${logs[0].details || 'No details'})` : '待機中...'}
+                </span>
+              </div>
+              <span className="text-stone-500 hidden sm:inline">K-DogSpa Simulator HUD</span>
+            </div>
+          </footer>
+
+          {/* TOAST HUD */}
+          {toast && (
+            <div className="fixed bottom-16 right-6 z-50 max-w-sm bg-stone-900 text-white p-4 rounded-xl border border-stone-800 shadow-2xl animate-bounce">
+              <div className="flex items-start space-x-2">
+                <span className="text-amber-500 font-bold">✓</span>
+                <div>
+                  <h4 className="text-xs font-bold text-stone-300">システム通知</h4>
+                  <p className="text-[11px] text-stone-400 mt-1">{toast.message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 1. OWNER VIEW (CLIENT BOOKING)
+    // ==========================================
+    function OwnerView({ shifts, reservations, setReservations, setShifts, addLog }) {
+      const [step, setStep] = useState(1);
+      const [selectedCourse, setSelectedCourse] = useState('trimmer');
+      
+      // Auto pre-filled mock data after logging in
+      const [ownerName, setOwnerName] = useState('鈴木 拓也');
+      const [dogName, setDogName] = useState('モコ');
+      const [dogBreed, setDogBreed] = useState('トイ・プードル');
+
+      const [selectedDate, setSelectedDate] = useState(todayStr);
+      const [selectedTrimmerId, setSelectedTrimmerId] = useState('any');
+      const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+
+      const [agreed1, setAgreed1] = useState(false);
+      const [agreed2, setAgreed2] = useState(false);
+      const [emergencyPhone, setEmergencyPhone] = useState('');
+      const [emergencyEmail, setEmergencyEmail] = useState('');
+
+      const [lockTimeRemaining, setLockTimeRemaining] = useState(900);
+      const [isLockExpired, setIsLockExpired] = useState(false);
+
+      const mockMemberPhone = '090-4819-2038';
+      const mockMemberEmail = 'test@testmail.com';
+
+      // Lock Timer
+      useEffect(() => {
+        let timer;
+        if (step === 4 && lockTimeRemaining > 0) {
+          timer = setInterval(() => {
+            setLockTimeRemaining(prev => {
+              if (prev <= 1) {
+                setIsLockExpired(true);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+        } else {
+          setLockTimeRemaining(900);
+          setIsLockExpired(false);
+        }
+        return () => clearInterval(timer);
+      }, [step]);
+
+      const formatTime = (secs) => {
+        const m = Math.floor(secs / 60).toString().padStart(2, '0');
+        const s = (secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+      };
+
+      const getBoothReservationsCount = (date, slot) => {
+        return reservations.filter(r => r.date === date && r.timeSlot === slot && r.status !== 'aborted').length;
+      };
+
+      const isSlotAvailable = (slot) => {
+        const count = getBoothReservationsCount(selectedDate, slot);
+        if (count >= 2) return false;
+
+        if (selectedCourse === 'self') return true;
+
+        if (selectedTrimmerId === 'any') {
+          return shifts.some(s => s.workDate === selectedDate && s.startTime === slot && !s.isAssigned);
+        } else {
+          return shifts.some(s => s.workDate === selectedDate && s.startTime === slot && s.trimmerId === selectedTrimmerId && !s.isAssigned);
+        }
+      };
+
+      const handleSuggestCopy = () => {
+        setEmergencyPhone(mockMemberPhone);
+        setEmergencyEmail(mockMemberEmail);
+      };
+
+      const handleNextStep = () => {
+        if (selectedCourse === 'self') {
+          setStep(4); // Skip consent for self
+        } else {
+          setStep(3);
+        }
+      };
+
+      const handleConfirmBooking = () => {
+        let assignedTrimmer = undefined;
+        let matchedShift = undefined;
+
+        if (selectedCourse === 'trimmer') {
+          if (selectedTrimmerId === 'any') {
+            matchedShift = shifts.find(s => s.workDate === selectedDate && s.startTime === selectedTimeSlot && !s.isAssigned);
+          } else {
+            matchedShift = shifts.find(s => s.workDate === selectedDate && s.startTime === selectedTimeSlot && s.trimmerId === selectedTrimmerId && !s.isAssigned);
+          }
+
+          if (!matchedShift) {
+            alert('指定日時に対応可能なトリマーが不在です。');
+            return;
+          }
+          assignedTrimmer = matchedShift.trimmerId;
+        }
+
+        // Commit Reservation
+        const newRes = {
+          id: 'res-' + Date.now(),
+          courseType: selectedCourse,
+          trimmerId: assignedTrimmer,
+          attendanceAgreedAt: selectedCourse === 'trimmer' ? new Date().toISOString() : undefined,
+          emergencyContact: selectedCourse === 'trimmer' ? emergencyPhone : undefined,
+          emergencyEmail: selectedCourse === 'trimmer' ? emergencyEmail : undefined,
+          ownerName,
+          dogName,
+          dogBreed,
+          dogSize: 'small',
+          date: selectedDate,
+          timeSlot: selectedTimeSlot,
+          status: 'reserved',
+          createdAt: new Date().toISOString(),
+          price: selectedCourse === 'trimmer' ? 6500 : 2000
+        };
+
+        if (matchedShift) {
+          setShifts(prev => prev.map(s => s.id === matchedShift.id ? { ...s, isAssigned: true } : s));
+        }
+
+        setReservations(prev => [newRes, ...prev]);
+        addLog(
+          `ご予約確定：${ownerName}様「${dogName}ちゃん」のご予約をお預かりしました。`,
+          'success',
+          `日時: ${selectedDate} ${selectedTimeSlot} | 緊急連絡: ${emergencyPhone || 'なし'}`
+        );
+        setStep(5);
+      };
+
+      const activeCourse = COURSES.find(c => c.id === selectedCourse);
+
+      // Consent form validation check
+      const isConsentValid = agreed1 && agreed2 && emergencyPhone.length >= 10 && emergencyEmail.includes('@');
+
+      return (
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 mt-6">
+          
+          {/* STEP INDICATOR */}
+          <div className="flex justify-between items-center max-w-lg mx-auto mb-8 relative">
+            <div className="absolute h-0.5 bg-stone-200 left-0 right-0 top-4 -z-10"></div>
+            {[1, 2, 3, 4, 5].map(s => (
+              <div key={s} className="flex flex-col items-center">
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                  step === s ? 'bg-amber-600 border-amber-600 text-white ring-4 ring-amber-100' :
+                  step > s ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-white border-stone-300 text-stone-500'
+                }`}>
+                  {s}
+                </span>
+                <span className="text-[9px] mt-1 text-stone-500">
+                  {s === 1 && 'コース・犬種'}
+                  {s === 2 && '日時・指名'}
+                  {s === 3 && '同席同意'}
+                  {s === 4 && '確認・決済'}
+                  {s === 5 && '完了'}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
+            
+            {/* STEP 1 */}
+            {step === 1 && (
+              <div>
+                <h3 className="text-base font-bold text-stone-950 mb-4 flex items-center gap-2">
+                  <span className="bg-amber-100 text-amber-800 rounded-full w-5 h-5 flex items-center justify-center text-xs">1</span>
+                  <span>コース・愛犬情報の選択</span>
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {COURSES.map(c => (
+                    <div 
+                      key={c.id} 
+                      onClick={() => setSelectedCourse(c.id)}
+                      className={`cursor-pointer border-2 rounded-xl p-4 transition flex flex-col justify-between ${
+                        selectedCourse === c.id ? 'border-amber-600 bg-amber-50/20' : 'border-stone-200 hover:border-stone-300'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-extrabold text-stone-700">{c.id === 'trimmer' ? '✂️ トリマー施術' : '🛁 セルフ'}</span>
+                          {c.id === 'trimmer' && (
+                            <span className="bg-red-50 text-red-700 text-[9px] px-1.5 py-0.5 rounded font-bold border border-red-200">
+                              常時同席必須
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-sm text-stone-900">{c.name}</h4>
+                        <p className="text-xs text-stone-500 mt-1 leading-relaxed">{c.description}</p>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-stone-100 flex justify-between items-baseline">
+                        <span className="text-[10px] text-stone-400">目安時間: {c.durationMin}分</span>
+                        <strong className="text-amber-800 text-base">¥{c.price.toLocaleString()}<span className="text-[10px] font-normal text-stone-500"> (税込)</span></strong>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* LOGGED IN INFO WITH DUMMY VALUES */}
+                <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
+                  <div className="flex items-center space-x-2 text-xs text-amber-800 font-bold mb-3 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-100">
+                    <span>💡 すでに「鈴木 拓也」様としてログインされています（登録済み情報が初期入力されています）</span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] text-stone-600 font-bold mb-1">飼い主氏名</label>
+                      <input 
+                        type="text" 
+                        value={ownerName} 
+                        onChange={e => setOwnerName(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs border rounded-lg bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-stone-600 font-bold mb-1">愛犬の名前</label>
+                      <input 
+                        type="text" 
+                        value={dogName} 
+                        onChange={e => setDogName(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs border rounded-lg bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-stone-600 font-bold mb-1">犬種</label>
+                      <select 
+                        value={dogBreed} 
+                        onChange={e => setDogBreed(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs border rounded-lg bg-white"
+                      >
+                        {DOG_BREEDS.map(b => (
+                          <option key={b.name} value={b.name}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end mt-6">
+                  <button 
+                    disabled={!ownerName || !dogName}
+                    onClick={() => setStep(2)}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-5 py-2 rounded-xl text-xs flex items-center space-x-1.5 transition"
+                  >
+                    <span>予約日時・トリマー選択へ進む</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2 */}
+            {step === 2 && (
+              <div>
+                <h3 className="text-base font-bold text-stone-950 mb-1 flex items-center gap-2">
+                  <span className="bg-amber-100 text-amber-800 rounded-full w-5 h-5 flex items-center justify-center text-xs">2</span>
+                  <span>希望日時の選択</span>
+                </h3>
+                <p className="text-[11px] text-stone-500 mb-4">
+                  {selectedCourse === 'trimmer' 
+                    ? '「ドッグブース空き」と「トリマーの勤務シフト」の【AND条件】で空き状況をリアルタイム算出しています。'
+                    : 'セルフコース：ドッグブースの同時利用制限数のみをもとに空き状況を表示します。'}
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Calendar / Selector */}
+                  <div className="space-y-4">
+                    <div>
+                      <span className="block text-xs font-bold mb-1 text-stone-700">1. 日付を選択</span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          onClick={() => { setSelectedDate(todayStr); setSelectedTimeSlot(''); }}
+                          className={`py-2 px-3 rounded-lg border text-xs font-semibold ${selectedDate === todayStr ? 'bg-amber-600 text-white' : 'bg-white'}`}
+                        >
+                          本日 ({todayStr.slice(5)})
+                        </button>
+                        <button 
+                          onClick={() => { setSelectedDate(tomorrowStr); setSelectedTimeSlot(''); }}
+                          className={`py-2 px-3 rounded-lg border text-xs font-semibold ${selectedDate === tomorrowStr ? 'bg-amber-600 text-white' : 'bg-white'}`}
+                        >
+                          明日 ({tomorrowStr.slice(5)})
+                        </button>
+                      </div>
+                    </div>
+
+                    {selectedCourse === 'trimmer' && (
+                      <div>
+                        <span className="block text-xs font-bold mb-1 text-stone-700">2. トリマー指名</span>
+                        <div className="space-y-1">
+                          <button 
+                            onClick={() => { setSelectedTrimmerId('any'); setSelectedTimeSlot(''); }}
+                            className={`w-full text-left p-2 border rounded-lg text-xs font-medium flex justify-between ${selectedTrimmerId === 'any' ? 'bg-amber-50 border-amber-600 text-amber-900 font-bold' : 'bg-white'}`}
+                          >
+                            <span>指名なし（空きトリマー割り当て）</span>
+                            <span className="text-[9px] text-emerald-600">空き枠多</span>
+                          </button>
+                          {MOCK_TRIMMERS.map(t => (
+                            <button 
+                              key={t.id}
+                              onClick={() => { setSelectedTrimmerId(t.id); setSelectedTimeSlot(''); }}
+                              className={`w-full text-left p-2 border rounded-lg text-xs font-medium flex items-center space-x-2 ${selectedTrimmerId === t.id ? 'bg-amber-50 border-amber-600 text-amber-900 font-bold' : 'bg-white'}`}
+                            >
+                              <img src={t.avatar} className="w-6 h-6 rounded-full object-cover" />
+                              <div>
+                                <span className="block">{t.name}</span>
+                                <span className="text-[9px] text-stone-400 font-normal">{t.skills}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grid Time Slots */}
+                  <div className="md:col-span-2">
+                    <span className="block text-xs font-bold mb-2 text-stone-700">3. 希望時間を選択</span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {TIME_SLOTS.map(slot => {
+                        const available = isSlotAvailable(slot);
+                        const selected = selectedTimeSlot === slot;
+                        return (
+                          <button
+                            key={slot}
+                            disabled={!available}
+                            onClick={() => setSelectedTimeSlot(slot)}
+                            className={`p-3 rounded-xl border text-xs text-center flex flex-col justify-center items-center transition ${
+                              selected ? 'bg-amber-600 text-white border-amber-600 font-bold shadow' :
+                              available ? 'bg-white text-stone-800 border-stone-200 hover:border-amber-400 hover:bg-amber-50/20' :
+                              'bg-stone-100 text-stone-300 border-stone-200 cursor-not-allowed'
+                            }`}
+                          >
+                            <span className="font-bold text-sm">{slot}</span>
+                            <span className="text-[9px] mt-1">{available ? '空きあり' : '満室/休み'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between mt-8 pt-4 border-t border-stone-100">
+                  <button onClick={() => setStep(1)} className="text-stone-500 hover:text-stone-700 text-xs font-bold">← 戻る</button>
+                  <button 
+                    disabled={!selectedTimeSlot}
+                    onClick={handleNextStep}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2 rounded-xl text-xs transition"
+                  >
+                    <span>次に進む</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3 (CONSENT SCREEN - COMPLIANT WITH REVISED MULTI-FIELD SPEC) */}
+            {step === 3 && (
+              <div>
+                <div className="bg-red-50 text-red-900 p-4 rounded-xl border border-red-200 mb-6 text-xs">
+                  <h4 className="font-extrabold flex items-center gap-1">
+                    ⚠️ トリマーお任せコースご利用時の【飼い主様の常時同席】に関する重要事項
+                  </h4>
+                  <p className="mt-2 leading-relaxed">
+                    ワンちゃんの安全および店舗セキュリティの観点から、トリミング施術中、飼い主様の常時ご同席が必須となります。無断での離脱・退店が発覚した場合は即時施術を中断し、返金はいたしかねます。
+                  </p>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-stone-50">
+                    <input 
+                      type="checkbox" 
+                      checked={agreed1} 
+                      onChange={e => setAgreed1(e.target.checked)} 
+                      className="mt-1" 
+                    />
+                    <span className="text-xs text-stone-700 leading-relaxed font-semibold">
+                      私は、施術中にブース内から離脱せず、常時同席することに同意します。<span className="text-red-600">(必須)</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-start space-x-2 cursor-pointer p-2 rounded hover:bg-stone-50">
+                    <input 
+                      type="checkbox" 
+                      checked={agreed2} 
+                      onChange={e => setAgreed2(e.target.checked)} 
+                      className="mt-1" 
+                    />
+                    <span className="text-xs text-stone-700 leading-relaxed font-semibold">
+                      万が一、無断で離脱された場合、安全のため施術を中断し、返金も行われないことに同意します。<span className="text-red-600">(必須)</span>
+                    </span>
+                  </label>
+
+                  {/* DOUBLE DEMO INPUTS FROM NEW SPEC (PHONE + EMAIL) */}
+                  <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-stone-800">当日連絡先情報の入力</span>
+                      <button 
+                        onClick={handleSuggestCopy} 
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200 rounded-lg text-[10px] px-2.5 py-1 font-bold transition"
+                      >
+                        📋 会員情報からコピー
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] text-stone-600 font-bold mb-1">
+                          緊急連絡先（携帯電話番号） <span className="text-red-500">*</span>
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder="090-0000-0000" 
+                          value={emergencyPhone}
+                          onChange={e => setEmergencyPhone(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border rounded-lg bg-white"
+                        />
+                        <span className="text-[9px] text-stone-400 mt-0.5 block">（会員登録電話: {mockMemberPhone}）</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] text-stone-600 font-bold mb-1">
+                          メールアドレス <span className="text-red-500">*</span>
+                        </label>
+                        <input 
+                          type="email" 
+                          placeholder="your-email@example.com" 
+                          value={emergencyEmail}
+                          onChange={e => setEmergencyEmail(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs border rounded-lg bg-white"
+                        />
+                        <span className="text-[9px] text-stone-400 mt-0.5 block">（会員登録メール: {mockMemberEmail}）</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between pt-4 border-t border-stone-100">
+                  <button onClick={() => setStep(2)} className="text-stone-500 hover:text-stone-700 text-xs font-bold">← 戻る</button>
+                  <button 
+                    disabled={!isConsentValid}
+                    onClick={() => setStep(4)}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2 rounded-xl text-xs transition"
+                  >
+                    <span>お支払い画面へ進む</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4 */}
+            {step === 4 && (
+              <div>
+                <h3 className="text-base font-bold text-stone-900 mb-2 text-center">最終ご予約内容確認とお支払い</h3>
+                
+                {/* 15 Minute Temporary Lock */}
+                <div className={`p-3 rounded-lg border text-xs text-center mb-4 ${isLockExpired ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <span className="font-extrabold text-amber-800">15分間仮押さえロック中 (コンカレンシー制御):</span>{' '}
+                  <strong className="font-mono-custom text-sm font-extrabold text-amber-900 bg-white px-2 py-0.5 rounded border ml-1 shadow-sm">
+                    {formatTime(lockTimeRemaining)}
+                  </strong>
+                  {isLockExpired && (
+                    <p className="text-[10px] text-red-600 font-bold mt-1">
+                      ⚠️ ロック時間が経過しました。タイムアウト防止のため、最初から予約枠を取り直してください。
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs space-y-2.5 mb-4 text-stone-700">
+                  <div className="flex justify-between border-b pb-1.5"><span>コース:</span> <strong className="text-stone-900">{activeCourse.name}</strong></div>
+                  <div className="flex justify-between border-b pb-1.5"><span>飼い主様 / ワンちゃん:</span> <span>{ownerName} 様 / {dogName} ちゃん ({dogBreed})</span></div>
+                  <div className="flex justify-between border-b pb-1.5"><span>予約日時:</span> <strong className="text-stone-900">{selectedDate} {selectedTimeSlot}</strong></div>
+                  
+                  {selectedCourse === 'trimmer' && (
+                    <>
+                      <div className="flex justify-between border-b pb-1.5"><span>当日緊急連絡電話:</span> <span className="font-mono-custom">{emergencyPhone}</span></div>
+                      <div className="flex justify-between border-b pb-1.5"><span>当日緊急連絡メール:</span> <span className="font-mono-custom">{emergencyEmail}</span></div>
+                      <div className="flex justify-between text-emerald-700 font-extrabold"><span>飼い主常時同席確認:</span> <span>✓ 同意済み</span></div>
+                    </>
+                  )}
+
+                  <div className="flex justify-between text-sm font-black pt-2 text-stone-900">
+                    <span>総額(税込):</span>
+                    <span className="text-amber-800">¥{activeCourse.price.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                <div className="border p-3 rounded-lg text-xs bg-stone-50/50 mb-6">
+                  <span className="block text-stone-600 font-bold mb-2">クレジットカードお支払い（動作テスト用デモ）</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" disabled value="4111 1111 1111 1111" className="p-1.5 border bg-white rounded text-stone-500 text-center font-mono-custom" />
+                    <input type="text" disabled value="12/29" className="p-1.5 border bg-white rounded text-stone-500 text-center font-mono-custom" />
+                  </div>
+                </div>
+
+                <div className="flex justify-between">
+                  <button onClick={() => setStep(selectedCourse === 'self' ? 2 : 3)} className="text-stone-500 hover:text-stone-700 text-xs font-bold">← 戻る</button>
+                  <button 
+                    disabled={isLockExpired}
+                    onClick={handleConfirmBooking}
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-200 text-white font-extrabold px-6 py-2.5 rounded-xl text-xs transition"
+                  >
+                    お支払いを完了し、予約を確定する
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 5 */}
+            {step === 5 && (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                  ✓
+                </div>
+                <h3 className="text-lg font-black text-stone-900">ご予約ありがとうございました！</h3>
+                <p className="text-xs text-stone-500 mt-2">
+                  ご入力いただいたメールアドレス（{emergencyEmail || '登録アドレス'}）宛に、予約完了確認通知メールを自動送信いたしました。
+                </p>
+                {selectedCourse === 'trimmer' && (
+                  <p className="text-[11px] font-extrabold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 max-w-md mx-auto mt-4">
+                    ⚠️ 注意：当日は、施術開始から完了まで、ワンちゃんのブース内に常時ご同席ください。
+                  </p>
+                )}
+
+                <div className="mt-6 flex justify-center">
+                  <button 
+                    onClick={() => {
+                      setStep(1);
+                      setSelectedTimeSlot('');
+                      setAgreed1(false);
+                      setAgreed2(false);
+                      setEmergencyPhone('');
+                      setEmergencyEmail('');
+                    }}
+                    className="px-4 py-2 bg-stone-900 text-white hover:bg-stone-950 rounded-xl text-xs font-bold"
+                  >
+                    新しく予約を入れる
+                  </button>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 2. TRIMMER VIEW (STAFF TERMINAL)
+    // ==========================================
+    function TrimmerView({ reservations, setReservations, shifts, setShifts, addLog }) {
+      const [currentTrimmerId, setCurrentTrimmerId] = useState('t1');
+      const [confirmModal, setConfirmModal] = useState(null); // null | { resId, type: 'start' | 'abort' }
+
+      const activeReservations = reservations.filter(
+        r => r.trimmerId === currentTrimmerId && r.date === todayStr
+      ).sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+
+      const handleStartProcess = (resId) => {
+        setConfirmModal({ resId, type: 'start' });
+      };
+
+      const handleAbortProcess = (resId) => {
+        setConfirmModal({ resId, type: 'abort' });
+      };
+
+      const handleCompleteProcess = (resId) => {
+        setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'completed' } : r));
+        const resObj = reservations.find(r => r.id === resId);
+        addLog(
+          `施術完了：${resObj.ownerName}様「${resObj.dogName}」の施術を無事正常完了としました。`,
+          'success',
+          `トリマー: ${MOCK_TRIMMERS.find(t => t.id === currentTrimmerId).name}`
+        );
+      };
+
+      const handleModalConfirm = () => {
+        const { resId, type } = confirmModal;
+        const resObj = reservations.find(r => r.id === resId);
+
+        if (type === 'start') {
+          const timestamp = new Date().toISOString();
+          setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'in_progress', attendanceConfirmedAt: timestamp } : r));
+          addLog(
+            `施術開始（目視確認済）：${resObj.ownerName}様、同席の目視完了し施術に入りました。`,
+            'info',
+            `トリマー: ${MOCK_TRIMMERS.find(t => t.id === currentTrimmerId).name}`
+          );
+        } else if (type === 'abort') {
+          // Abort process
+          setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'aborted' } : r));
+          
+          // Free shift
+          if (resObj.trimmerId) {
+            setShifts(prev => prev.map(s => (s.workDate === resObj.date && s.startTime === resObj.timeSlot && s.trimmerId === resObj.trimmerId) ? { ...s, isAssigned: false } : s));
+          }
+
+          addLog(
+            `🚨【緊急・飼い主離脱検知】${resObj.ownerName}様が一時不在となったため、施術を強制中断しました。`,
+            'error',
+            `緊急電話：${resObj.emergencyContact} / メール：${resObj.emergencyEmail} へアラート発信完了。`
+          );
+        }
+
+        setConfirmModal(null);
+      };
+
+      const currentTrimmer = MOCK_TRIMMERS.find(t => t.id === currentTrimmerId);
+
+      return (
+        <div className="max-w-md mx-auto mt-6 bg-stone-900 text-stone-100 rounded-[32px] border-[8px] border-stone-800 shadow-2xl overflow-hidden relative" style={{ height: '700px' }}>
+          
+          {/* Status device bar */}
+          <div className="bg-stone-950 px-5 py-2 flex justify-between items-center text-[10px] text-stone-500 font-mono-custom border-b border-stone-800">
+            <span>🐾 STAFF MOBILE TERMINAL</span>
+            <span>12:00 (本日)</span>
+          </div>
+
+          {/* Current login trimmer info */}
+          <div className="bg-white text-stone-900 p-4 border-b flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <img src={currentTrimmer.avatar} className="w-8 h-8 rounded-full object-cover" />
+              <div>
+                <span className="block font-bold text-xs">{currentTrimmer.name}</span>
+                <span className="text-[9px] text-stone-400">ログイン中 (本日出勤)</span>
+              </div>
+            </div>
+
+            <select
+              value={currentTrimmerId}
+              onChange={e => setCurrentTrimmerId(e.target.value)}
+              className="text-[10px] font-bold border rounded p-1 bg-stone-50"
+            >
+              {MOCK_TRIMMERS.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Schedule view */}
+          <div className="p-4 overflow-y-auto" style={{ height: '530px' }}>
+            <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-3">
+              本日担当のトリマーお任せコース予約（計 {activeReservations.length}件）
+            </h4>
+
+            {activeReservations.length === 0 ? (
+              <div className="text-center py-16 bg-stone-800/20 border border-stone-800 rounded-xl">
+                <p className="text-stone-500 text-xs">本日の予約はありません。</p>
+                <p className="text-[10px] text-stone-600 mt-1">「飼い主予約画面」から予約を入れてみてください。</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {activeReservations.map(res => (
+                  <div key={res.id} className="bg-stone-800 p-3.5 rounded-xl border border-stone-700 text-stone-200">
+                    <div className="flex justify-between items-baseline mb-2">
+                      <span className="font-mono-custom text-amber-400 font-bold text-xs">{res.timeSlot}</span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                        res.status === 'reserved' ? 'bg-blue-900/40 text-blue-300' :
+                        res.status === 'in_progress' ? 'bg-emerald-900/40 text-emerald-300 animate-pulse' :
+                        res.status === 'completed' ? 'bg-stone-700 text-stone-400' : 'bg-red-900/40 text-red-300'
+                      }`}>
+                        {res.status === 'reserved' && '予約済'}
+                        {res.status === 'in_progress' && '施術中'}
+                        {res.status === 'completed' && '完了'}
+                        {res.status === 'aborted' && '強制中断'}
+                      </span>
+                    </div>
+
+                    <div className="text-xs font-bold mb-1.5">🐶 {res.dogName} ちゃん ({res.dogBreed})</div>
+                    <div className="text-[10px] text-stone-400 mb-2">飼い主: {res.ownerName} 様</div>
+
+                    {/* Extended Contact DB fields */}
+                    <div className="bg-stone-950 p-2 rounded text-[9px] text-stone-400 space-y-1 mb-3 font-mono-custom">
+                      <div>📞 緊急電話: <strong className="text-stone-200">{res.emergencyContact}</strong></div>
+                      <div>✉️ 緊急メール: <strong className="text-stone-200">{res.emergencyEmail || '-'}</strong></div>
+                      {res.attendanceAgreedAt && (
+                        <div className="text-emerald-500">✓ 同意完了: {new Date(res.attendanceAgreedAt).toLocaleTimeString()}</div>
+                      )}
+                      {res.attendanceConfirmedAt && (
+                        <div className="text-blue-400">✓ 目視確認: {new Date(res.attendanceConfirmedAt).toLocaleTimeString()}</div>
+                      )}
+                    </div>
+
+                    {/* Operational buttons */}
+                    <div className="flex gap-2">
+                      {res.status === 'reserved' && (
+                        <button
+                          onClick={() => handleStartProcess(res.id)}
+                          className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 rounded-lg text-[10px] transition"
+                        >
+                          飼い主の同席を確認し、施術を開始する
+                        </button>
+                      )}
+
+                      {res.status === 'in_progress' && (
+                        <>
+                          <button
+                            onClick={() => handleAbortProcess(res.id)}
+                            className="flex-1 bg-red-900/60 hover:bg-red-900 text-red-200 font-bold py-1.5 rounded-lg text-[10px] transition"
+                          >
+                            飼い主不在（中断）
+                          </button>
+                          <button
+                            onClick={() => handleCompleteProcess(res.id)}
+                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-[10px] transition"
+                          >
+                            施術完了
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* DIALOG BOX */}
+          {confirmModal && (
+            <div className="absolute inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+              <div className="bg-white text-stone-950 p-4 rounded-xl max-w-xs w-full text-center">
+                {confirmModal.type === 'start' ? (
+                  <div>
+                    <h5 className="font-bold text-xs mb-2">最終目視同意確認</h5>
+                    <p className="text-[10px] text-stone-600 mb-4 leading-relaxed">
+                      「飼い主様が目の前に同席していること」を実際に目視確認しましたか？
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <h5 className="font-bold text-xs text-red-700 mb-2">🚨 警告：飼い主無断離脱</h5>
+                    <p className="text-[10px] text-stone-600 mb-4 leading-relaxed">
+                      同席ルール違反のため施術を緊急中断します。本部へ即時緊急アラートが発報されます。よろしいですか？
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex space-x-2">
+                  <button onClick={() => setConfirmModal(null)} className="flex-1 py-1 bg-stone-100 rounded text-[10px]">キャンセル</button>
+                  <button onClick={handleModalConfirm} className="flex-1 py-1 bg-amber-600 text-white rounded text-[10px] font-bold">はい、確定</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      );
+    }
+
+    // ==========================================
+    // 3. ADMIN VIEW (HEADQUARTERS DASHBOARD)
+    // ==========================================
+    function AdminView({ shifts, setShifts, reservations, logs, setLogs }) {
+      const [newShiftTrimmer, setNewShiftTrimmer] = useState('t1');
+      const [newShiftDate, setNewShiftDate] = useState(todayStr);
+      const [newShiftTime, setNewShiftTime] = useState('12:00');
+
+      const handleAddShift = (e) => {
+        e.preventDefault();
+        
+        const duplicate = shifts.some(
+          s => s.trimmerId === newShiftTrimmer && s.workDate === newShiftDate && s.startTime === newShiftTime
+        );
+        if (duplicate) {
+          alert('同一トリマーに重複するシフトが既に存在します。');
+          return;
+        }
+
+        const newShift = {
+          id: 'shift-' + Date.now(),
+          trimmerId: newShiftTrimmer,
+          workDate: newShiftDate,
+          startTime: newShiftTime,
+          endTime: (parseInt(newShiftTime) + 1) + ':00',
+          isAssigned: false
+        };
+
+        setShifts(prev => [...prev, newShift]);
+      };
+
+      const handleRemoveShift = (id) => {
+        setShifts(prev => prev.filter(s => s.id !== id));
+      };
+
+      const getTrimmerName = (id) => {
+        return MOCK_TRIMMERS.find(t => t.id === id)?.name || '-';
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto p-4 sm:p-6 mt-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b">
+            <div>
+              <h2 className="text-lg font-black text-stone-900">K・DogSpa 本部経営管理ダッシュボード</h2>
+              <p className="text-xs text-stone-500">同席同意履歴のエビデンス、勤務シフト割当、緊急警告ログの統括監視</p>
+            </div>
+            
+            {/* Quick counters */}
+            <div className="flex gap-4 mt-4 md:mt-0">
+              <div className="bg-white border p-3 rounded-xl text-center shadow-sm">
+                <span className="text-[9px] text-stone-400 block font-bold">当日予約件数</span>
+                <strong className="text-base text-stone-800 font-extrabold">
+                  {reservations.filter(r => r.date === todayStr).length} 件
+                </strong>
+              </div>
+              <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-center shadow-sm">
+                <span className="text-[9px] text-red-500 block font-bold">途中離脱違反</span>
+                <strong className="text-base text-red-700 font-extrabold">
+                  {reservations.filter(r => r.status === 'aborted').length} 件
+                </strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* LEFT COL: SHIFT MANAGEMENT */}
+            <div className="bg-white p-5 rounded-2xl border shadow-sm">
+              <h3 className="font-bold text-xs text-stone-800 mb-4 uppercase">🗓️ 新規シフト作成</h3>
+              
+              <form onSubmit={handleAddShift} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-stone-600 mb-1">トリマー</label>
+                  <select value={newShiftTrimmer} onChange={e => setNewShiftTrimmer(e.target.value)} className="w-full text-xs border p-2 rounded">
+                    {MOCK_TRIMMERS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 mb-1">勤務日</label>
+                    <select value={newShiftDate} onChange={e => setNewShiftDate(e.target.value)} className="w-full text-xs border p-2 rounded">
+                      <option value={todayStr}>本日</option>
+                      <option value={tomorrowStr}>明日</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-stone-600 mb-1">開始時間</label>
+                    <select value={newShiftTime} onChange={e => setNewShiftTime(e.target.value)} className="w-full text-xs border p-2 rounded">
+                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <button type="submit" className="w-full py-2 bg-stone-900 text-white hover:bg-black font-bold rounded-lg text-xs transition">
+                  シフト勤務枠を追加
+                </button>
+              </form>
+
+              {/* LIST SHIFTS */}
+              <div className="mt-6 border-t pt-4">
+                <h4 className="text-[10px] font-bold text-stone-400 uppercase mb-3">登録済み勤務シフト</h4>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {shifts.map(s => (
+                    <div key={s.id} className="bg-stone-50 p-2 rounded border text-[10px] flex justify-between items-center">
+                      <span>👤 {getTrimmerName(s.trimmerId)} ({s.startTime}～)</span>
+                      <div className="flex items-center space-x-1">
+                        <span className={`text-[9px] px-1 rounded ${s.isAssigned ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'}`}>
+                          {s.isAssigned ? '予約あり' : '空き'}
+                        </span>
+                        {!s.isAssigned && (
+                          <button onClick={() => handleRemoveShift(s.id)} className="text-red-500 font-bold hover:text-red-700 ml-1">×</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLS: RESERVATION LOGS & DOUBLE EVIDENCE */}
+            <div className="lg:col-span-2 bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col">
+              <div className="p-4 bg-stone-50 border-b flex justify-between items-center">
+                <h3 className="font-bold text-xs text-stone-800 uppercase">📋 同席同意ログ・予約履歴一覧（DB証跡監査）</h3>
+              </div>
+              
+              <div className="overflow-x-auto text-xs">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-stone-100/80 border-b font-bold text-stone-600">
+                      <th className="p-3">日時 / コース</th>
+                      <th className="p-3">お客様名 / 愛犬</th>
+                      <th className="p-3 bg-amber-50/50 text-amber-900">① 常時同席同意</th>
+                      <th className="p-3 bg-blue-50/50 text-blue-900">② 当日目視確認</th>
+                      <th className="p-3">緊急連絡先 (TEL/EMAIL)</th>
+                      <th className="p-3">ステータス</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y text-[11px]">
+                    {reservations.map(res => (
+                      <tr key={res.id} className="hover:bg-stone-50">
+                        <td className="p-3">
+                          <span className="font-bold block">{res.date} {res.timeSlot}</span>
+                          <span className="text-[10px] text-stone-500">{res.courseType === 'trimmer' ? 'トリマーお任せ' : 'セルフコース'}</span>
+                        </td>
+                        <td className="p-3">
+                          <strong className="block text-stone-900">{res.ownerName} 様</strong>
+                          <span className="text-stone-400 text-[10px]">🐶 {res.dogName}</span>
+                        </td>
+                        {/* AGREED DATETIME */}
+                        <td className="p-3 bg-amber-50/20 font-mono-custom">
+                          {res.attendanceAgreedAt ? (
+                            <div className="text-emerald-700">
+                              <span className="font-bold block">✓ 同意済</span>
+                              <span className="text-[9px] text-stone-500">{new Date(res.attendanceAgreedAt).toLocaleTimeString()}</span>
+                            </div>
+                          ) : '-'}
+                        </td>
+                        {/* CONFIRMED DATETIME */}
+                        <td className="p-3 bg-blue-50/10 font-mono-custom">
+                          {res.attendanceConfirmedAt ? (
+                            <div className="text-blue-700">
+                              <span className="font-bold block">✓ 確認完了</span>
+                              <span className="text-[9px] text-stone-500">{new Date(res.attendanceConfirmedAt).toLocaleTimeString()}</span>
+                            </div>
+                          ) : res.status === 'aborted' ? (
+                            <span className="text-red-600 font-bold">⚠️ 中断</span>
+                          ) : '-'}
+                        </td>
+                        {/* CONTACT DETAILS (PHONE + EMAIL MULTI-FIELD) */}
+                        <td className="p-3 font-mono-custom text-stone-600">
+                          <div>{res.emergencyContact || '-'}</div>
+                          {res.emergencyEmail && <div className="text-[10px] text-stone-400">{res.emergencyEmail}</div>}
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            res.status === 'reserved' ? 'bg-blue-100 text-blue-800' :
+                            res.status === 'in_progress' ? 'bg-emerald-100 text-emerald-800' :
+                            res.status === 'completed' ? 'bg-stone-100 text-stone-500' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {res.status === 'reserved' && '予約済'}
+                            {res.status === 'in_progress' && '施術中'}
+                            {res.status === 'completed' && '完了'}
+                            {res.status === 'aborted' && '強制中断'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // --- Boot React Application ---
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+
+    // Trigger icon rendering helper after loading
+    setTimeout(() => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }, 500);
+  </script>
+</body>
+</html>

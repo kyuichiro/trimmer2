@@ -1,0 +1,6 @@
+{
+  "name": "K・DogSpa 予約システム",
+  "description": "トリマー予約機能および飼い主同席確認機能に対応した高機能予約管理シミュレーター",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
