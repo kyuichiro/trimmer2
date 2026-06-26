@@ -12,10 +12,10 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   
-  <!-- Babel CDN for JSX parsing in browser -->
+  <!-- Babel CDN for browser JSX translation -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts (Inter & JetBrains Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -31,14 +31,14 @@
 </head>
 <body class="bg-stone-100 min-h-screen text-stone-800">
 
-  <!-- React Root Container -->
+  <!-- React Root -->
   <div id="root"></div>
 
-  <!-- React Application Logic -->
+  <!-- React App Scripts -->
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // --- Master Data ---
+    // --- Static Master Data ---
     const COURSES = [
       {
         id: 'self',
@@ -49,7 +49,7 @@
         features: [
           'プロ用ドッグバス・ドライヤー完備',
           '各種高品質オーガニックシャンプー使い放題',
-          '同席不要（飼い主様ご自身が洗うため、常に一緒です）'
+          '同席不要（飼い主様が洗うため、常に一緒です）'
         ]
       },
       {
@@ -151,7 +151,7 @@
       }
     ];
 
-    // --- Main App ---
+    // --- Main App Shell ---
     function App() {
       const [currentRole, setCurrentRole] = useState('owner'); // 'owner' | 'trimmer' | 'admin'
       const [reservations, setReservations] = useState(INITIAL_RESERVATIONS);
@@ -176,7 +176,7 @@
       return (
         <div className="flex flex-col min-h-screen">
           
-          {/* HEADER */}
+          {/* HEADER BAR */}
           <header className="bg-stone-900 text-stone-100 border-b border-stone-800 sticky top-0 z-50 shadow-md">
             <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center space-x-3">
@@ -188,11 +188,11 @@
                     <span className="font-extrabold text-lg text-white">K・DogSpa</span>
                     <span className="bg-amber-600/20 text-amber-400 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">シミュレーター</span>
                   </div>
-                  <p className="text-xs text-stone-400">1ファイル完結型 飼い主常時同席同意＆目視確認 動作デモ</p>
+                  <p className="text-xs text-stone-400 font-medium">1ファイル完結型 飼い主常時同席同意＆目視確認 動作デモ</p>
                 </div>
               </div>
 
-              {/* Roles Toggle */}
+              {/* Role Switcher */}
               <div className="flex bg-stone-800 p-1 rounded-xl border border-stone-700 gap-1 self-start md:self-auto">
                 <button
                   onClick={() => setCurrentRole('owner')}
@@ -263,14 +263,14 @@
             )}
           </main>
 
-          {/* HUD FOOTER STATUS */}
+          {/* REALTIME SYSTEM STATUS HUD */}
           <footer className="fixed bottom-0 left-0 right-0 bg-stone-900 border-t border-stone-800 text-stone-300 z-40 shadow-xl">
             <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between text-xs font-mono-custom">
               <div className="flex items-center space-x-2 truncate">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0"></span>
                 <span className="font-bold text-amber-500 flex-shrink-0">SYSTEM LOG:</span>
                 <span className="text-stone-100 truncate">
-                  {logs[0] ? logs[0].message : '待機中...'}
+                  {logs[0] ? `${logs[0].message} (${logs[0].details || 'No details'})` : '待機中...'}
                 </span>
               </div>
               <span className="text-stone-500 hidden sm:inline flex-shrink-0">K・DogSpa Simulation Engine</span>
@@ -282,7 +282,7 @@
     }
 
     // ==========================================
-    // 1. OWNER VIEW
+    // 1. OWNER VIEW (CLIENT BOOKING)
     // ==========================================
     function OwnerView({ shifts, reservations, setReservations, setShifts, addLog }) {
       const [step, setStep] = useState(1);
@@ -301,13 +301,13 @@
       const [emergencyPhone, setEmergencyPhone] = useState('');
       const [emergencyEmail, setEmergencyEmail] = useState('');
 
-      const [lockTimeRemaining, setLockTimeRemaining] = useState(900); // 15 minutes lock
+      const [lockTimeRemaining, setLockTimeRemaining] = useState(900); // 15 minutes hold
       const [isLockExpired, setIsLockExpired] = useState(false);
 
       const mockMemberPhone = '090-4819-2038';
       const mockMemberEmail = 'test@testmail.com';
 
-      // Lock Timer for step 4
+      // Hold Lock Timer for Payment Step
       useEffect(() => {
         let timer;
         if (step === 4 && lockTimeRemaining > 0) {
@@ -339,7 +339,7 @@
 
       const isSlotAvailable = (slot) => {
         const count = getBoothReservationsCount(selectedDate, slot);
-        if (count >= 2) return false; // Max 2 booths in the spa
+        if (count >= 2) return false; // Maximum 2 rooms limit in shop
 
         if (selectedCourse === 'self') return true;
 
@@ -357,7 +357,7 @@
 
       const handleNextStep = () => {
         if (selectedCourse === 'self') {
-          setStep(4); // Self Shampoo doesn't need trimmer attendance consent
+          setStep(4); // Self Shampoo doesn't require visual attendance check consent
         } else {
           setStep(3);
         }
@@ -404,20 +404,20 @@
 
         setReservations(prev => [newRes, ...prev]);
         addLog(
-          `ご予約確定：${ownerName}様「${dogName}ちゃん」の新規予約。`,
+          `ご予約確定：${ownerName}様「${dogName}ちゃん」の新規予約をお預かりしました。`,
           'success',
-          `時間: ${selectedDate} ${selectedTimeSlot} | 同席同意済`
+          `日時: ${selectedDate} ${selectedTimeSlot} | 常時同席同意済み`
         );
         setStep(5);
       };
 
       const activeCourse = COURSES.find(c => c.id === selectedCourse);
-      const isConsentValid = agreed1 && agreed2 && emergencyPhone.length >= 10 && emergencyEmail.includes('@');
+      const isConsentValid = agreed1 && agreed2 && emergencyPhone.trim().length >= 10 && emergencyEmail.trim() !== '' && emergencyEmail.includes('@');
 
       return (
         <div className="max-w-4xl mx-auto p-4 sm:p-6 mt-6">
           
-          {/* STEPPER BAR */}
+          {/* STEPPER PROGRESS */}
           <div className="flex justify-between items-center max-w-xl mx-auto mb-8 relative">
             <div className="absolute h-0.5 bg-stone-200 left-0 right-0 top-4 -z-10"></div>
             {[1, 2, 3, 4, 5].map(s => (
@@ -441,7 +441,7 @@
 
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6">
             
-            {/* STEP 1 */}
+            {/* STEP 1: COURSE & DOG INFO */}
             {step === 1 && (
               <div className="space-y-6">
                 <div>
@@ -480,10 +480,10 @@
                   ))}
                 </div>
 
-                {/* Simulated Login Info */}
+                {/* Simulated Logged-In User Information */}
                 <div className="bg-stone-50 p-4 rounded-xl border border-stone-200">
                   <div className="bg-amber-50 text-amber-900 border border-amber-100 px-3 py-2 rounded-lg text-xs font-semibold mb-4">
-                    💡 鈴木 拓也 様としてログイン中です。ご登録済みの愛犬情報が自動入力されています。
+                    💡 鈴木 拓也 様としてログイン中です。ご登録済みの会員データが自動セットされています。
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -523,7 +523,7 @@
                   <button 
                     disabled={!ownerName || !dogName}
                     onClick={() => setStep(2)}
-                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-all"
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-all shadow"
                   >
                     日時・指名選択へ進む →
                   </button>
@@ -531,7 +531,7 @@
               </div>
             )}
 
-            {/* STEP 2 */}
+            {/* STEP 2: SCHEDULE & SLOTS */}
             {step === 2 && (
               <div className="space-y-6">
                 <div>
@@ -540,15 +540,15 @@
                     <span>ご希望の予約日時とトリマーをお選びください</span>
                   </h3>
                   <p className="text-[11px] text-stone-500 mt-1">
-                    店舗ドッグブース（上限2室）とトリマーの稼働シフトのAND条件でリアルタイムに予約可能枠を算出しています。
+                    ドッグブース（上限2台）とトリマーの稼働シフトをリアルタイムに突き合わせて算出しています。
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Calendar & Staff selection */}
+                  {/* Left Column: Date & Trimmer selection */}
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold mb-1.5 text-stone-700">📆 日付の選択</label>
+                      <label className="block text-xs font-bold mb-1.5 text-stone-700 font-semibold">📆 日付の選択</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button 
                           onClick={() => { setSelectedDate(todayStr); setSelectedTimeSlot(''); }}
@@ -567,7 +567,7 @@
 
                     {selectedCourse === 'trimmer' && (
                       <div>
-                        <label className="block text-xs font-bold mb-1.5 text-stone-700">✂️ トリマーの指名</label>
+                        <label className="block text-xs font-bold mb-1.5 text-stone-700 font-semibold">✂️ トリマーの指名</label>
                         <div className="space-y-1.5">
                           <button 
                             onClick={() => { setSelectedTrimmerId('any'); setSelectedTimeSlot(''); }}
@@ -594,9 +594,9 @@
                     )}
                   </div>
 
-                  {/* Slots Grid */}
+                  {/* Right Column: Time slots Grid */}
                   <div className="md:col-span-2">
-                    <label className="block text-xs font-bold mb-2 text-stone-700">⏰ 希望時間の選択</label>
+                    <label className="block text-xs font-bold mb-2 text-stone-700 font-semibold">⏰ 希望時間の選択</label>
                     <div className="grid grid-cols-4 gap-2">
                       {TIME_SLOTS.map(slot => {
                         const available = isSlotAvailable(slot);
@@ -626,7 +626,7 @@
                   <button 
                     disabled={!selectedTimeSlot}
                     onClick={handleNextStep}
-                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition"
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition shadow"
                   >
                     次に進む →
                   </button>
@@ -634,15 +634,15 @@
               </div>
             )}
 
-            {/* STEP 3 - AGREEMENT (TRIMMER ONLY) */}
+            {/* STEP 3: MANDATORY ATTENDANCE CONSENT & DUAL CONTACT DETAILS */}
             {step === 3 && (
               <div className="space-y-6">
                 <div className="bg-red-50 text-red-900 p-4 rounded-xl border border-red-200 text-xs">
                   <h4 className="font-extrabold flex items-center gap-1.5 text-red-800">
-                    ⚠️ トリマーお任せコースご利用時の【飼い主様の常時同席】同意
+                    ⚠️ トリマーお任せコースご利用時の【飼い主様の常時同席】同意について
                   </h4>
                   <p className="mt-2 leading-relaxed">
-                    ワンちゃんの急な体調不良や怪我の防止、および防犯対策として、施術中のブース内には飼い主様が常時同席いただく必要がございます。一時退出・退店された場合、安全のため直ちに施術を中止し、未完了の施術についても返金はできません。
+                    ワンちゃんの不測の体調変化や怪我の防止、防犯対策の観点から、トリミング施術中、ブース内には飼い主様が常時ご同席いただく必要がございます。一時的な退店・退出が確認された場合、安全のため直ちに施術を中断し、未完了分についても返金はできません。
                   </p>
                 </div>
 
@@ -655,7 +655,7 @@
                       className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500" 
                     />
                     <span className="text-xs text-stone-700 font-semibold leading-relaxed">
-                      施術ブース内から離れず、トリミングの最初から最後まで常時同席することに同意します。<span className="text-red-600 font-bold">(必須)</span>
+                      施術ブース内から離れることなく、トリミングの最初から最後まで常時同席することに同意します。<span className="text-red-600 font-bold">(必須)</span>
                     </span>
                   </label>
 
@@ -667,27 +667,27 @@
                       className="mt-0.5 rounded border-stone-300 text-amber-600 focus:ring-amber-500" 
                     />
                     <span className="text-xs text-stone-700 font-semibold leading-relaxed">
-                      万が一、無断でブースを退出・退店した場合、安全のため即時施術を中止されても異議を申し立てず、返金も求めないことに同意します。<span className="text-red-600 font-bold">(必須)</span>
+                      万が一、無断で一時退出・退店した場合、直ちに施術を中止されても異議を申し立てず、返金を求めないことに同意します。<span className="text-red-600 font-bold">(必須)</span>
                     </span>
                   </label>
 
-                  {/* EMERGENCY CONTACT INFORMATION (PHONE + EMAIL MULTI-FIELDS) */}
+                  {/* DUAL EMERGENCY CONTACT FIELD (WITH INTEGRATED SUGGEST COPY BUTTON) */}
                   <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-stone-800">📱 当日の緊急連絡先情報の登録</span>
+                    <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                      <span className="text-xs font-bold text-stone-800">📱 当日緊急連絡先およびメールアドレスの登録</span>
                       <button 
                         type="button"
                         onClick={handleSuggestCopy} 
-                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200 rounded-lg text-[10px] px-2.5 py-1.5 font-bold transition"
+                        className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-200 rounded-lg text-[10px] px-2.5 py-1.5 font-bold transition shadow-sm"
                       >
-                        📋 会員登録情報からコピー
+                        📋 会員情報からまとめてコピー
                       </button>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] text-stone-600 font-bold mb-1">
-                          当日の連絡先携帯電話番号 <span className="text-red-500">*</span>
+                          当日連絡が取れる「緊急連絡先（携帯電話番号）」 <span className="text-red-500">*</span>
                         </label>
                         <input 
                           type="text" 
@@ -696,12 +696,12 @@
                           onChange={e => setEmergencyPhone(e.target.value)}
                           className="w-full px-3 py-2 text-xs border rounded-lg bg-white focus:outline-amber-600 font-mono-custom"
                         />
-                        <span className="text-[9px] text-stone-400 mt-1 block">（会員登録: {mockMemberPhone}）</span>
+                        <span className="text-[9px] text-stone-400 mt-1 block font-medium">（登録情報: {mockMemberPhone}）</span>
                       </div>
 
                       <div>
                         <label className="block text-[10px] text-stone-600 font-bold mb-1">
-                          当日の連絡先メールアドレス <span className="text-red-500">*</span>
+                          当日連絡が取れる「メールアドレス」 <span className="text-red-500">*</span>
                         </label>
                         <input 
                           type="email" 
@@ -710,7 +710,7 @@
                           onChange={e => setEmergencyEmail(e.target.value)}
                           className="w-full px-3 py-2 text-xs border rounded-lg bg-white focus:outline-amber-600 font-mono-custom"
                         />
-                        <span className="text-[9px] text-stone-400 mt-1 block">（会員登録: {mockMemberEmail}）</span>
+                        <span className="text-[9px] text-stone-400 mt-1 block font-medium">（登録情報: {mockMemberEmail}）</span>
                       </div>
                     </div>
                   </div>
@@ -720,23 +720,23 @@
                   <button onClick={() => setStep(2)} className="text-stone-500 hover:text-stone-700 text-xs font-bold">← 戻る</button>
                   <button 
                     disabled={!isConsentValid}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-bold px-6 py-2.5 rounded-xl text-xs transition shadow"
                     onClick={() => setStep(4)}
-                    className="bg-amber-600 hover:bg-amber-700 disabled:bg-stone-200 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition"
                   >
-                    お支払い確認画面へ進む →
+                    お支払い画面へ進む →
                   </button>
                 </div>
               </div>
             )}
 
-            {/* STEP 4 */}
+            {/* STEP 4: MOCK PAYMENT & CONCURRENCY LOCK */}
             {step === 4 && (
               <div className="space-y-6">
                 <div className="text-center">
                   <h3 className="text-base font-bold text-stone-900">最終予約内容の確認とお支払い</h3>
                 </div>
 
-                {/* 15 Minute Concurrency Lock Warning */}
+                {/* 15 Minute Hold Warning Banner */}
                 <div className={`p-3.5 rounded-xl border text-xs text-center ${isLockExpired ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
                   <span className="font-bold text-amber-800">⏳ Concurrency Lock (15分間仮押さえ中):</span>{' '}
                   <strong className="font-mono-custom text-sm font-bold text-amber-900 bg-white px-2 py-0.5 rounded border ml-1 shadow-sm">
@@ -744,7 +744,7 @@
                   </strong>
                   {isLockExpired && (
                     <p className="text-[10px] text-red-600 font-bold mt-1.5">
-                      ⚠️ 仮押さえ時間が超過しました。他のお客様との競合を防ぐため、最初から取り直してください。
+                      ⚠️ 仮押さえ時間が超過しました。他のお客様との競合を防ぐため、一度最初からやり直してください。
                     </p>
                   )}
                 </div>
@@ -756,8 +756,8 @@
                   
                   {selectedCourse === 'trimmer' && (
                     <>
-                      <div className="flex justify-between border-b pb-2"><span>当日の緊急連絡電話:</span> <span className="font-mono-custom">{emergencyPhone}</span></div>
-                      <div className="flex justify-between border-b pb-2"><span>当日の緊急連絡メール:</span> <span className="font-mono-custom">{emergencyEmail}</span></div>
+                      <div className="flex justify-between border-b pb-2"><span>緊急連絡電話:</span> <span className="font-mono-custom">{emergencyPhone}</span></div>
+                      <div className="flex justify-between border-b pb-2"><span>緊急連絡メール:</span> <span className="font-mono-custom">{emergencyEmail}</span></div>
                       <div className="flex justify-between text-emerald-700 font-bold"><span>常時同席確認:</span> <span>✓ 同意済み</span></div>
                     </>
                   )}
@@ -777,11 +777,11 @@
                 </div>
 
                 <div className="flex justify-between pt-4">
-                  <button onClick={() => setStep(selectedCourse === 'self' ? 2 : 3)} className="text-stone-500 hover:text-stone-700 text-xs font-bold">← 戻る</button>
+                  <button onClick={() => setStep(selectedCourse === 'self' ? 2 : 3)} className="text-stone-500 hover:text-stone-700 text-xs font-bold font-semibold">← 戻る</button>
                   <button 
                     disabled={isLockExpired}
                     onClick={handleConfirmBooking}
-                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-200 text-white font-extrabold px-6 py-3 rounded-xl text-xs transition"
+                    className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-200 text-white font-extrabold px-6 py-3 rounded-xl text-xs transition shadow"
                   >
                     クレジットカード決済と予約を確定する
                   </button>
@@ -789,7 +789,7 @@
               </div>
             )}
 
-            {/* STEP 5 */}
+            {/* STEP 5: COMPLETED */}
             {step === 5 && (
               <div className="text-center py-8 space-y-4">
                 <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
@@ -797,11 +797,11 @@
                 </div>
                 <h3 className="text-lg font-bold text-stone-900">ご予約が確定いたしました</h3>
                 <p className="text-xs text-stone-500 max-w-md mx-auto leading-relaxed">
-                  鈴木 拓也 様、ありがとうございました。ご登録の緊急メールアドレス（{emergencyEmail || 'test@testmail.com'}）宛に、自動送信の確認通知を配信いたしました。
+                  鈴木 拓也 様、ありがとうございました。ご登録の緊急連絡メールアドレス（<strong className="text-stone-700">{emergencyEmail || 'test@testmail.com'}</strong>）宛に、自動送信の確認通知を配信いたしました。
                 </p>
                 {selectedCourse === 'trimmer' && (
                   <div className="text-[11px] font-bold text-red-600 bg-red-50 p-3.5 rounded-lg border border-red-100 max-w-md mx-auto leading-relaxed">
-                    ⚠️ ご注意：当日はワンちゃんを預けっぱなしにせず、ブース内に常時同席いただく必要がございます。ご協力をお願いいたします。
+                    ⚠️ ご注意：当日は施術中の離脱（お買い物などによる退店）をせず、ブース内に常時ご同席ください。
                   </div>
                 )}
 
@@ -815,7 +815,7 @@
                       setEmergencyPhone('');
                       setEmergencyEmail('');
                     }}
-                    className="px-5 py-2.5 bg-stone-900 text-white hover:bg-black rounded-xl text-xs font-bold transition"
+                    className="px-5 py-2.5 bg-stone-900 text-white hover:bg-black rounded-xl text-xs font-bold transition shadow"
                   >
                     新しく予約を入れる
                   </button>
@@ -865,7 +865,7 @@
           const timestamp = new Date().toISOString();
           setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'in_progress', attendanceConfirmedAt: timestamp } : r));
           addLog(
-            `施術開始（現場目視）：${resObj.ownerName}様、同席の目視完了し施術に入りました。`,
+            `施術開始（目視確認済）：${resObj.ownerName}様、同席の目視完了し施術に入りました。`,
             'info',
             `トリマー: ${MOCK_TRIMMERS.find(t => t.id === currentTrimmerId).name}`
           );
@@ -877,9 +877,9 @@
           }
 
           addLog(
-            `🚨【緊急・一時不在検知】${resObj.ownerName}様が一時不在となったため、施術を強制中断しました。`,
+            `🚨【緊急・飼い主不在検知】${resObj.ownerName}様が一時不在となったため、施術を強制中断しました。`,
             'error',
-            `緊急電話：${resObj.emergencyContact} / メール：${resObj.emergencyEmail} へ警告メールを自動送信。`
+            `緊急連絡電話 ${resObj.emergencyContact} およびメール ${resObj.emergencyEmail || '登録宛'} へ確認連絡、本部自動警告メールを発信完了。`
           );
         }
 
@@ -891,26 +891,26 @@
       return (
         <div className="max-w-md mx-auto mt-6 bg-stone-900 text-stone-100 rounded-[36px] border-[10px] border-stone-800 shadow-2xl overflow-hidden relative" style={{ minHeight: '680px' }}>
           
-          {/* Status device bar */}
+          {/* Mobile Terminal top notch / header */}
           <div className="bg-stone-950 px-5 py-2.5 flex justify-between items-center text-[10px] text-stone-500 font-mono-custom border-b border-stone-800">
             <span>🐾 STAFF PORTAL</span>
-            <span>LIVE CONNECTED</span>
+            <span className="text-emerald-500 font-bold">● CONNECTED</span>
           </div>
 
-          {/* Current login trimmer info */}
+          {/* Selector header */}
           <div className="bg-white text-stone-900 p-4 border-b flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <img src={currentTrimmer.avatar} className="w-8 h-8 rounded-full object-cover border" />
               <div>
                 <span className="block font-bold text-xs">{currentTrimmer.name}</span>
-                <span className="text-[9px] text-stone-400">本日担当トリマー</span>
+                <span className="text-[9px] text-stone-400">ログイン中 (出勤)</span>
               </div>
             </div>
 
             <select
               value={currentTrimmerId}
               onChange={e => setCurrentTrimmerId(e.target.value)}
-              className="text-[11px] font-bold border rounded p-1 bg-stone-50 focus:outline-none"
+              className="text-[11px] font-bold border rounded p-1.5 bg-stone-50 focus:outline-none"
             >
               {MOCK_TRIMMERS.map(t => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -918,16 +918,16 @@
             </select>
           </div>
 
-          {/* Schedule view */}
+          {/* Scheduled Reservation items */}
           <div className="p-4 space-y-4">
             <h4 className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
-              本日の担当施術一覧 (計 {activeReservations.length}件)
+              本日の施術スケジュール (計 {activeReservations.length}件)
             </h4>
 
             {activeReservations.length === 0 ? (
               <div className="text-center py-16 bg-stone-800/40 border border-stone-800 rounded-xl">
-                <p className="text-stone-500 text-xs">担当の予約はありません。</p>
-                <p className="text-[10px] text-stone-600 mt-1">左上のタブから飼い主として新規予約を入れてください。</p>
+                <p className="text-stone-500 text-xs">担当予約はありません。</p>
+                <p className="text-[10px] text-stone-600 mt-1">「① 飼い主予約画面」から予約を入れてみてください。</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -938,7 +938,8 @@
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
                         res.status === 'reserved' ? 'bg-blue-950 text-blue-300 border border-blue-900' :
                         res.status === 'in_progress' ? 'bg-emerald-950 text-emerald-300 border border-emerald-900 animate-pulse' :
-                        res.status === 'completed' ? 'bg-stone-700 text-stone-400' : 'bg-red-950 text-red-300 border border-red-900'
+                        res.status === 'completed' ? 'bg-stone-700 text-stone-400 border border-stone-600' :
+                        'bg-red-950 text-red-300 border border-red-900'
                       }`}>
                         {res.status === 'reserved' && '予約済'}
                         {res.status === 'in_progress' && '施術中'}
@@ -951,41 +952,40 @@
                     <div className="text-[10px] text-stone-400 mb-2">飼い主: {res.ownerName} 様</div>
 
                     {/* Extended Contact DB fields */}
-                    <div className="bg-stone-950 p-2 rounded text-[9px] text-stone-400 space-y-1 mb-3 font-mono-custom">
+                    <div className="bg-stone-950 p-2.5 rounded text-[9.5px] text-stone-400 space-y-1 mb-3.5 font-mono-custom">
                       <div>📞 緊急電話: <strong className="text-stone-200">{res.emergencyContact}</strong></div>
                       <div>✉️ 緊急メール: <strong className="text-stone-200">{res.emergencyEmail || '-'}</strong></div>
                       {res.attendanceAgreedAt && (
-                        <div className="text-emerald-500">✓ 同意完了: {new Date(res.attendanceAgreedAt).toLocaleTimeString()}</div>
-                      )}
-                      {res.attendanceConfirmedAt && (
-                        <div className="text-blue-400">✓ 目視確認: {new Date(res.attendanceConfirmedAt).toLocaleTimeString()}</div>
+                        <div className="text-amber-500 text-[8.5px] font-semibold">
+                          ✓ 同意書送信日時: {new Date(res.attendanceAgreedAt).toLocaleTimeString()}
+                        </div>
                       )}
                     </div>
 
-                    {/* Operational buttons */}
+                    {/* Operational Action Panel */}
                     <div className="flex gap-2">
                       {res.status === 'reserved' && (
                         <button
                           onClick={() => handleStartProcess(res.id)}
-                          className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-[10px] transition"
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-2 rounded-lg text-[10px] transition"
                         >
-                          飼い主の同席を確認し、施術を開始する
+                          👀 同席を目視確認して施術開始
                         </button>
                       )}
 
                       {res.status === 'in_progress' && (
                         <>
                           <button
-                            onClick={() => handleAbortProcess(res.id)}
-                            className="flex-1 bg-red-900/60 hover:bg-red-900 text-red-200 font-bold py-2 rounded-lg text-[10px] transition"
+                            onClick={() => handleCompleteProcess(res.id)}
+                            className="w-1/2 bg-stone-700 hover:bg-stone-600 text-white font-extrabold py-2 rounded-lg text-[10px] transition"
                           >
-                            🚨 飼い主不在（中断）
+                            🎉 施術正常完了
                           </button>
                           <button
-                            onClick={() => handleCompleteProcess(res.id)}
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-[10px] transition"
+                            onClick={() => handleAbortProcess(res.id)}
+                            className="w-1/2 bg-red-600 hover:bg-red-700 text-white font-extrabold py-2 rounded-lg text-[10px] transition"
                           >
-                            ✓ 施術完了
+                            🚨 飼い主離脱 (強制中断)
                           </button>
                         </>
                       )}
@@ -996,29 +996,31 @@
             )}
           </div>
 
-          {/* CONFIRMATION DIALOG MODAL */}
+          {/* STICKY DETAILED CONFIRMATION DIALOGUE */}
           {confirmModal && (
-            <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4 z-50 animate-fade-in">
-              <div className="bg-white text-stone-950 p-5 rounded-xl max-w-xs w-full text-center">
-                {confirmModal.type === 'start' ? (
-                  <div>
-                    <h5 className="font-bold text-xs mb-2 text-stone-900">最終目視同意確認</h5>
-                    <p className="text-[11px] text-stone-600 mb-4 leading-relaxed">
-                      「飼い主様が目の前の施術ブース内に同席していること」を実際に目視確認しましたか？
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <h5 className="font-bold text-xs text-red-700 mb-2">🚨 警告：飼い主無断離脱</h5>
-                    <p className="text-[11px] text-stone-600 mb-4 leading-relaxed">
-                      同席ルール違反のためトリミング施術を中断します。店舗本部への自動警告と、飼い主携帯番号・メールへのアラートを即時発信します。
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex space-x-2">
-                  <button onClick={() => setConfirmModal(null)} className="flex-1 py-1.5 bg-stone-100 hover:bg-stone-200 rounded text-[10px] font-semibold text-stone-600">キャンセル</button>
-                  <button onClick={handleModalConfirm} className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-bold">はい、実行する</button>
+            <div className="absolute inset-0 bg-stone-950/90 flex items-center justify-center p-4 z-50">
+              <div className="bg-white text-stone-900 p-5 rounded-2xl max-w-sm w-full shadow-2xl">
+                <h4 className="text-sm font-bold border-b pb-2 mb-3">
+                  {confirmModal.type === 'start' ? '⚠️ 同席目視確認' : '🚨 飼い主離脱検知・施術中断'}
+                </h4>
+                <p className="text-[11px] leading-relaxed text-stone-600 mb-4">
+                  {confirmModal.type === 'start' 
+                    ? '施術ブース内に、飼い主様が同席（着席）していることを目視しましたか？同意事項の開始処理をシステムにログします。'
+                    : '飼い主様が無断でブースを離脱されたため、施術を強制中断します。緊急連絡先への電話・自動メールが送信され、管理者へ警告されます。よろしいですか？'}
+                </p>
+                <div className="flex gap-2 justify-end">
+                  <button 
+                    onClick={() => setConfirmModal(null)}
+                    className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold rounded-lg text-xs"
+                  >
+                    キャンセル
+                  </button>
+                  <button 
+                    onClick={handleModalConfirm}
+                    className={`px-3 py-1.5 text-white font-bold rounded-lg text-xs ${confirmModal.type === 'start' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700'}`}
+                  >
+                    {confirmModal.type === 'start' ? '同席目視完了・開始' : 'はい、強制中断する'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1029,184 +1031,110 @@
     }
 
     // ==========================================
-    // 3. ADMIN VIEW (HEADQUARTERS DASHBOARD)
+    // 3. ADMIN DASHBOARD VIEW (HEADQUARTERS)
     // ==========================================
     function AdminView({ shifts, setShifts, reservations, logs }) {
-      const [newShiftTrimmer, setNewShiftTrimmer] = useState('t1');
-      const [newShiftDate, setNewShiftDate] = useState(todayStr);
-      const [newShiftTime, setNewShiftTime] = useState('12:00');
+      
+      const totalRevenue = reservations
+        .filter(r => r.status === 'completed')
+        .reduce((sum, r) => sum + r.price, 0);
 
-      const handleAddShift = (e) => {
-        e.preventDefault();
-        
-        const duplicate = shifts.some(
-          s => s.trimmerId === newShiftTrimmer && s.workDate === newShiftDate && s.startTime === newShiftTime
-        );
-        if (duplicate) {
-          alert('同一トリマーに重複するシフトが既に存在します。');
-          return;
-        }
-
-        const newShift = {
-          id: 'shift-' + Date.now(),
-          trimmerId: newShiftTrimmer,
-          workDate: newShiftDate,
-          startTime: newShiftTime,
-          endTime: (parseInt(newShiftTime) + 1) + ':00',
-          isAssigned: false
-        };
-
-        setShifts(prev => [...prev, newShift]);
-      };
-
-      const handleRemoveShift = (id) => {
-        setShifts(prev => prev.filter(s => s.id !== id));
-      };
-
-      const getTrimmerName = (id) => {
-        return MOCK_TRIMMERS.find(t => t.id === id)?.name || '-';
-      };
+      const activeCount = reservations.filter(r => r.status === 'reserved' || r.status === 'in_progress').length;
+      const abortedCount = reservations.filter(r => r.status === 'aborted').length;
+      const completedCount = reservations.filter(r => r.status === 'completed').length;
 
       return (
-        <div className="max-w-6xl mx-auto p-4 sm:p-6 mt-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 pb-4 border-b">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b pb-4">
             <div>
-              <h2 className="text-lg font-black text-stone-900">K・DogSpa 本部経営管理ダッシュボード</h2>
-              <p className="text-xs text-stone-500">飼い主常時同席エビデンス（二重証跡監査）、勤務シフト調整、緊急違反警告の統括画面</p>
+              <h2 className="text-xl font-bold text-stone-900">K・DogSpa 本部ダッシュボード</h2>
+              <p className="text-xs text-stone-500 mt-1">店舗ブース稼働状況、飼い主同席誓約違反（強制中断履歴）の監視ログ</p>
             </div>
-            
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <div className="bg-white border p-3 rounded-xl text-center shadow-sm">
-                <span className="text-[9px] text-stone-400 block font-bold">本日総予約数</span>
-                <strong className="text-base text-stone-800 font-extrabold">
-                  {reservations.filter(r => r.date === todayStr).length} 件
-                </strong>
-              </div>
-              <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-center shadow-sm animate-pulse">
-                <span className="text-[9px] text-red-500 block font-bold">一時不在中断違反</span>
-                <strong className="text-base text-red-700 font-extrabold">
-                  {reservations.filter(r => r.status === 'aborted').length} 件
-                </strong>
-              </div>
+            <div className="text-right">
+              <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-800 font-bold text-xs rounded-full border border-amber-200">
+                更新状況: リアルタイム
+              </span>
+            </div>
+          </div>
+
+          {/* KEY PERFORMANCE INDICATORS */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+              <span className="block text-[10px] text-stone-400 font-bold uppercase">本日売上 (正常完了)</span>
+              <strong className="block text-xl text-amber-900 mt-1">¥{totalRevenue.toLocaleString()}</strong>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+              <span className="block text-[10px] text-stone-400 font-bold uppercase">現在進行・予約待ち</span>
+              <strong className="block text-xl text-stone-800 mt-1">{activeCount} 件</strong>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border shadow-sm">
+              <span className="block text-[10px] text-stone-400 font-bold uppercase">正常完了数</span>
+              <strong className="block text-xl text-emerald-700 mt-1">{completedCount} 件</strong>
+            </div>
+
+            <div className="bg-white p-4 rounded-xl border shadow-sm border-red-200 bg-red-50/20">
+              <span className="block text-[10px] text-red-500 font-bold uppercase">🚨 誓約違反 強制中断件数</span>
+              <strong className="block text-xl text-red-600 mt-1">{abortedCount} 件</strong>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* LEFT COL: SHIFT ASSIGNMENT */}
-            <div className="bg-white p-5 rounded-2xl border shadow-sm self-start">
-              <h3 className="font-bold text-xs text-stone-800 mb-4 uppercase">🗓️ 新規トリマー稼働枠の追加</h3>
-              
-              <form onSubmit={handleAddShift} className="space-y-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-stone-600 mb-1">担当トリマー</label>
-                  <select value={newShiftTrimmer} onChange={e => setNewShiftTrimmer(e.target.value)} className="w-full text-xs border p-2 rounded">
-                    {MOCK_TRIMMERS.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">勤務日</label>
-                    <select value={newShiftDate} onChange={e => setNewShiftDate(e.target.value)} className="w-full text-xs border p-2 rounded">
-                      <option value={todayStr}>本日</option>
-                      <option value={tomorrowStr}>明日</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-stone-600 mb-1">開始時間</label>
-                    <select value={newShiftTime} onChange={e => setNewShiftTime(e.target.value)} className="w-full text-xs border p-2 rounded">
-                      {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
-                </div>
-
-                <button type="submit" className="w-full py-2.5 bg-stone-900 hover:bg-black text-white font-bold rounded-lg text-xs transition">
-                  シフト枠を追加
-                </button>
-              </form>
-
-              <div className="mt-6 border-t pt-4">
-                <h4 className="text-[10px] font-bold text-stone-400 uppercase mb-3">登録済み勤務シフト</h4>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                  {shifts.map(s => (
-                    <div key={s.id} className="bg-stone-50 p-2 rounded border text-[10px] flex justify-between items-center">
-                      <span className="font-semibold">👤 {getTrimmerName(s.trimmerId)} ({s.startTime}～)</span>
-                      <div className="flex items-center space-x-1.5">
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${s.isAssigned ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-200 text-stone-600'}`}>
-                          {s.isAssigned ? '予約済' : '空き'}
-                        </span>
-                        {!s.isAssigned && (
-                          <button onClick={() => handleRemoveShift(s.id)} className="text-red-500 font-bold hover:text-red-700 ml-1">×</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {/* Left: Reservations Management list with emergency email column */}
+            <div className="lg:col-span-2 bg-white rounded-xl border shadow-sm overflow-hidden">
+              <div className="px-4 py-3 bg-stone-50 border-b flex justify-between items-center">
+                <h3 className="text-xs font-bold text-stone-700 uppercase">予約台帳（本日・緊急連絡先データベース）</h3>
               </div>
-            </div>
 
-            {/* RIGHT COLS: RESERVATION AUDITING LOGS */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border shadow-sm overflow-hidden flex flex-col">
-              <div className="p-4 bg-stone-50 border-b">
-                <h3 className="font-bold text-xs text-stone-800 uppercase">📋 同席同意履歴・予約DB証跡一覧（二重証跡エビデンス監査）</h3>
-              </div>
-              
-              <div className="overflow-x-auto text-xs">
-                <table className="w-full text-left">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="bg-stone-100 border-b font-bold text-stone-600">
-                      <th className="p-3">日時 / コース</th>
-                      <th className="p-3">お客様名 / 愛犬</th>
-                      <th className="p-3 bg-amber-50 text-amber-900 font-bold">① 同意タイムスタンプ</th>
-                      <th className="p-3 bg-blue-50 text-blue-900 font-bold">② 目視タイムスタンプ</th>
+                    <tr className="bg-stone-100 text-stone-600 font-semibold border-b">
+                      <th className="p-3">時間</th>
+                      <th className="p-3">コース</th>
+                      <th className="p-3">飼い主 / 愛犬</th>
                       <th className="p-3">緊急連絡先</th>
+                      <th className="p-3 text-right">料金</th>
                       <th className="p-3">ステータス</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y text-[11px]">
+                  <tbody>
                     {reservations.map(res => (
-                      <tr key={res.id} className="hover:bg-stone-50 transition">
+                      <tr key={res.id} className="border-b hover:bg-stone-50/50">
+                        <td className="p-3 font-mono-custom font-bold text-stone-800">{res.timeSlot}</td>
                         <td className="p-3">
-                          <span className="font-bold block">{res.date} {res.timeSlot}</span>
-                          <span className="text-[10px] text-stone-500">{res.courseType === 'trimmer' ? 'トリマーお任せ' : 'セルフコース'}</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${res.courseType === 'trimmer' ? 'bg-amber-100 text-amber-900 border' : 'bg-stone-100 text-stone-800'}`}>
+                            {res.courseType === 'trimmer' ? '✂️ トリマー' : '🛁 セルフ'}
+                          </span>
+                        </td>
+                        <td className="p-3 font-medium">
+                          <div className="font-bold text-stone-900">{res.ownerName} 様</div>
+                          <div className="text-[10px] text-stone-500">🐕 {res.dogName} ({res.dogBreed})</div>
                         </td>
                         <td className="p-3">
-                          <strong className="block text-stone-900">{res.ownerName} 様</strong>
-                          <span className="text-stone-400 text-[10px]">🐶 {res.dogName} ({res.dogBreed})</span>
-                        </td>
-                        <td className="p-3 bg-amber-50/20 font-mono-custom">
-                          {res.attendanceAgreedAt ? (
-                            <div className="text-emerald-700">
-                              <span className="font-bold block">✓ 同意完了</span>
-                              <span className="text-[9px] text-stone-500">{new Date(res.attendanceAgreedAt).toLocaleTimeString()}</span>
+                          {res.courseType === 'trimmer' ? (
+                            <div className="space-y-0.5">
+                              <div className="font-mono-custom text-[11px] font-semibold text-stone-800">{res.emergencyContact}</div>
+                              <div className="font-mono-custom text-[9.5px] text-stone-400 truncate max-w-[140px]" title={res.emergencyEmail}>{res.emergencyEmail || '登録なし'}</div>
                             </div>
-                          ) : '-'}
+                          ) : (
+                            <span className="text-stone-300">-</span>
+                          )}
                         </td>
-                        <td className="p-3 bg-blue-50/10 font-mono-custom">
-                          {res.attendanceConfirmedAt ? (
-                            <div className="text-blue-700">
-                              <span className="font-bold block">✓ 確認完了</span>
-                              <span className="text-[9px] text-stone-500">{new Date(res.attendanceConfirmedAt).toLocaleTimeString()}</span>
-                            </div>
-                          ) : res.status === 'aborted' ? (
-                            <span className="text-red-600 font-extrabold block">🚨 緊急中断</span>
-                          ) : '-'}
-                        </td>
-                        <td className="p-3 font-mono-custom text-stone-600">
-                          <div>{res.emergencyContact || '-'}</div>
-                          {res.emergencyEmail && <div className="text-[10px] text-stone-400 mt-0.5">{res.emergencyEmail}</div>}
-                        </td>
+                        <td className="p-3 text-right font-mono-custom font-bold">¥{res.price.toLocaleString()}</td>
                         <td className="p-3">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                          <span className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded-full ${
                             res.status === 'reserved' ? 'bg-blue-100 text-blue-800' :
-                            res.status === 'in_progress' ? 'bg-emerald-100 text-emerald-800 animate-pulse' :
-                            res.status === 'completed' ? 'bg-stone-100 text-stone-500' : 'bg-red-100 text-red-800 font-black'
+                            res.status === 'in_progress' ? 'bg-emerald-100 text-emerald-800' :
+                            res.status === 'completed' ? 'bg-stone-100 text-stone-500' :
+                            'bg-red-100 text-red-800 border border-red-200 font-extrabold'
                           }`}>
-                            {res.status === 'reserved' && '予約済'}
+                            {res.status === 'reserved' && '予約待ち'}
                             {res.status === 'in_progress' && '施術中'}
-                            {res.status === 'completed' && '正常完了'}
-                            {res.status === 'aborted' && '強制中断'}
+                            {res.status === 'completed' && '完了'}
+                            {res.status === 'aborted' && '🚨強制中断'}
                           </span>
                         </td>
                       </tr>
@@ -1216,13 +1144,40 @@
               </div>
             </div>
 
+            {/* Right: Operational Live Logs */}
+            <div className="bg-white rounded-xl border shadow-sm overflow-hidden flex flex-col">
+              <div className="px-4 py-3 bg-stone-50 border-b">
+                <h3 className="text-xs font-bold text-stone-700 uppercase">店舗リアルタイム監査・警報ログ</h3>
+              </div>
+              <div className="p-4 flex-grow overflow-y-auto space-y-3 font-mono-custom text-[11px]" style={{ maxHeight: '380px' }}>
+                {logs.map(log => (
+                  <div 
+                    key={log.id} 
+                    className={`p-2.5 rounded-lg border leading-relaxed ${
+                      log.type === 'error' ? 'bg-red-50 border-red-200 text-red-900' :
+                      log.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-900' :
+                      'bg-stone-50 border-stone-200 text-stone-700'
+                    }`}
+                  >
+                    <div className="flex justify-between text-[9px] font-semibold opacity-60 mb-1">
+                      <span>[{log.type.toUpperCase()}]</span>
+                      <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <p className="font-semibold">{log.message}</p>
+                    {log.details && <p className="text-[10px] opacity-75 mt-0.5">{log.details}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         </div>
       );
     }
 
-    // Boot React App
-    const root = ReactDOM.createRoot(document.getElementById('root'));
+    // Render application
+    const rootElement = document.getElementById("root");
+    const root = ReactDOM.createRoot(rootElement);
     root.render(<App />);
   </script>
 </body>

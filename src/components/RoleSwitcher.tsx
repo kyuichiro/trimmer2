@@ -106,10 +106,19 @@ export default function RoleSwitcher({
               </span>
             )}
           </div>
+          <a
+            href="/kdogspa-simulator.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center space-x-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded-lg shadow-sm transition duration-150 font-bold cursor-pointer"
+            title="PCにダウンロードして直接開ける、完全自己完結型の1ファイル版HTMLデモを開きます"
+          >
+            <span>💾 単一HTML版</span>
+          </a>
           <button
             onClick={onResetData}
             title="シミュレーションデータをリセット"
-            className="flex items-center space-x-1 px-2.5 py-1.5 bg-stone-800 text-stone-300 hover:bg-stone-700 text-xs rounded-lg border border-stone-700 transition duration-150 font-medium"
+            className="flex items-center space-x-1 px-2.5 py-1.5 bg-stone-800 text-stone-300 hover:bg-stone-700 text-xs rounded-lg border border-stone-700 transition duration-150 font-medium cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span className="hidden md:inline">データ初期化</span>
